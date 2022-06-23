@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  db_dev:
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    restart: always
+    ports:
+      - "3310:3306"
+    container_name: whats_for_dinner
+    environment:
+      - MYSQL_ROOT_PASSWORD=75234963c13e0ac2d60015230e20b81c
+      - MYSQL_DATABASE=whats_for_dinner
+      - MYSQL_USER=whats_for_dinner_user
+      - MYSQL_PASSWORD=whats_for_dinner_password

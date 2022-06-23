@@ -1,0 +1,137 @@
+module Hangry
+  class SchemaOrgRecipeParser < RecipeParser
+    def self.root_selector
+      '[itemtype*="schema.org/Recipe"]'
+    end
+
+    def self.nutrition_selector
+      '[itemtype*="schema.org/NutritionInformation"]'
+    end
+
+    def self.ingredient_itemprops
+      %w{recipeIngredient ingredients}
+    end
+
+    private
+
+    def node_with_itemprop(itemprop)
+      nodes_with_itemprop(itemprop).first || NullObject.new
+    end
+
+    def nodes_with_itemprops(*values)
+      return NullObject.new unless recipe_ast
+      recipe_ast.css(values.map { |value| "[itemprop=\"#{value}\"]" }.join(", "))
+    end
+
+    def nodes_with_itemprop(itemprop)
+      recipe_ast ? recipe_ast.css("[itemprop = \"#{itemprop}\"]") : NullObject.new
+    end
+
+    def nutrition_node_with_itemprop(itemprop)
+      return NullObject.new unless nutrition_ast
+      nutrition_ast.css("[itemprop = \"#{itemprop}\"]").first || NullObject.new
+    end
+
+    def nutrition_property_value(itemprop)
+      nutrition_node = nutrition_node_with_itemprop(itemprop)
+      value = value(nutrition_node['content']) || value(nutrition_node.content)
+      value ? value.strip : nil
+    end
+
+    def parse_author
+      author_node = node_with_itemprop(:author)
+      author = if author_node['itemtype'] =~ /schema.org\/Person/
+                 #author_node.css('[itemprop = "name"]').first['content']
+                 author_node.css('[itemprop = "name"]').first.content
+               else
+                 content = author_node.content
+                 if content.strip.blank? && author_node['title'].present?
+                   author_node['title']
+                 else
+                   content.strip
+                 end
+               end
+      author
+    end
+
+    def parse_cook_time
+      parse_time(:cookTime)
+    end
+
+    def parse_description
+      node_with_itemprop(:description).content
+    end
+
+    def parse_image_url
+      node = node_with_itemprop(:image)
+      value(node['src']) || value(node['content'])
+    end
+
+    def parse_ingredients
+      nodes_with_itemprops(*self.class.ingredient_itemprops).map { |node|
+        node.content.strip
+      }.reject(&:blank?)
+    end
+
+    def parse_instructions
+      # Some sites like may have their recipe instructions doubled if they
+      # support different ways of presentation.
+      # E.g. http://www.pillsbury.com/recipes/big-cheesy-pepperoni-pockets/a17766e6-30ce-4a0c-af08-72533bb9b449
+      # has its steps doubled ("step by step" and "list" modes).
+      instructions = nodes_with_itemprop(:recipeInstructions).map { |i|
+        i.content.strip
+      }.uniq
+      instructions
+    end
+
+    def parse_name
+      node = node_with_itemprop(:name)
+      node.name == "meta" ? node.attr(:content) : node.content
+    end
+
+    def parse_nutrition
+      recipe.nutrition.tap do |nutrition|
+        nutrition[:calories] = nutrition_property_value(:calories)
+        nutrition[:cholesterol] = nutrition_property_value(:cholesterolContent)
+        nutrition[:fiber] = nutrition_property_value(:fiberContent)
+        nutrition[:protein] = nutrition_property_value(:proteinContent)
+        nutrition[:saturated_fat] = nutrition_property_value(:saturatedFatContent)
+        nutrition[:sodium] = nutrition_property_value(:sodiumContent)
+        nutrition[:sugar] = nutrition_property_value(:sugarContent)
+        nutrition[:total_carbohydrates] = nutrition_property_value(:carbohydrateContent)
+        nutrition[:total_fat] = nutrition_property_value(:fatContent)
+        nutrition[:trans_fat] = nutrition_property_value(:transFatContent)
+        nutrition[:unsaturated_fat] = nutrition_property_value(:unsaturatedFatContent)
+      end
+    end
+
+    def parse_prep_time
+      parse_time(:prepTime)
+    end
+
+    def parse_published_date
+      content = node_with_itemprop(:datePublished)['content']
+      content.blank? ? nil : Date.parse(content)
+    end
+
+    def parse_time(type)
+      node = node_with_itemprop(type)
+      iso8601_string = if node['content'].present?
+                         node['content']  # foodnetwork.com
+                       else
+                         node['datetime'] # allrecipes.com
+                       end
+      parse_duration(iso8601_string)
+    end
+
+    def parse_total_time
+      parse_time(:totalTime)
+    end
+
+    def parse_yield
+      value(node_with_itemprop(:recipeYield)['content']) ||
+      value(node_with_itemprop(:recipeYield).content) ||
+      NullObject.new
+    end
+  end
+end
