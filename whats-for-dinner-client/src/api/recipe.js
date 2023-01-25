@@ -5,7 +5,7 @@ const importRecipe = (values) =>
     console.log("importRecipe")
     console.log(values)
     console.log("url: " + WHATS_FOR_DINNER_API_URL)
-    fetch(`${WHATS_FOR_DINNER_API_URL}/import_recipes`, {
+    fetch(`${WHATS_FOR_DINNER_API_URL}/scrape_recipe`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

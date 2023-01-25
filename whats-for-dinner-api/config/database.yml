@@ -17,10 +17,10 @@ default: &default
 development:
   <<: *default
   database: 'whats_for_dinner'
-  username: 'whats_for_dinner_user'
-  password: 'whats_for_dinner_password'
+  username: 'root'
+  password: 'asd789hui2345bhjkasdf'
   host: '127.0.0.1'
-  port: 3310
+  port: 3306
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".

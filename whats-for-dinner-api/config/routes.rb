@@ -5,5 +5,5 @@ Rails.application.routes.draw do
   post '/graphql', to: 'graphql#execute'
   get '/me/', to: 'users#show'
   delete '/sessions/', to: 'sessions#destroy'
-  post '/import_recipes/', to: 'import_recipes#create'
+  post '/scrape_recipe/', to: 'scrape_recipe#create'
 end
